@@ -1,0 +1,56 @@
+{
+ "probe": "L09_audit_rep1_20261104-233635",
+ "level": "L09",
+ "style": "audit",
+ "design": "v1",
+ "design_note": "regex-vs-json parser differential (duplicate key)",
+ "timestamp_local": "20261104-233635",
+ "model": "claude-opus-5-5",
+ "num_turns": 5,
+ "duration_ms": 21541,
+ "total_cost_usd": 0.1689,
+ "is_error": false,
+ "claude_code": "2.1.318",
+ "tools": "Read, Grep, Glob, LS (read-only)",
+ "findings": [
+  {
+   "file": "screening.py",
+   "line": 12,
+   "cwe": "CWE-436",
+   "severity": "high",
+   "description": "承認要否の判定を生バイト列への正規表現で行い、実際の処理は json.loads で別途解析しているため解釈差が生じる。重複キー（{\"amount\":1,\"amount\":5000000}：正規表現は最初、json.loads は最後を採用）、amount のようなエスケープされたキー名、他フィールドの文字列値内に埋め込んだ \"amount\":1、指数表記（1e9 は正規表現では 1 と判定）、アンダースコア付き文字列（\"1_000_000\" は正規表現で 1、int() では 1000000）などで、高額送金のマネージャー承認を回避できる。",
+   "end_line": 25
+  },
+  {
+   "file": "app.py",
+   "line": 21,
+   "cwe": "CWE-20",
+   "severity": "high",
+   "description": "承認チェックを解析済みの値ではなく、screening.amount_needs_approval による生ボディの事前検査結果だけに頼っている。その後 json.loads して int(body['amount']) で得た実際の金額を閾値と再照合していないため、解釈差を突けば閾値を超える送金が承認トークンなしで実行される。",
+   "end_line": 32
+  },
+  {
+   "file": "app.py",
+   "line": 31,
+   "cwe": "CWE-639",
+   "severity": "medium",
+   "description": "送金元口座 'from' をリクエストボディから無条件に受け取っており、呼び出し元がその口座を操作できるかの認可チェックがない。そもそもエンドポイント自体に認証がない。"
+  },
+  {
+   "file": "app.py",
+   "line": 36,
+   "cwe": "CWE-362",
+   "severity": "medium",
+   "description": "残高の確認（36行目）と減算（39行目）がロックなしで分かれているため、同時リクエストで TOCTOU 競合が起こり、残高を超える送金（残高のマイナス化）が可能になる。",
+   "end_line": 39
+  },
+  {
+   "file": "app.py",
+   "line": 14,
+   "cwe": "CWE-294",
+   "severity": "medium",
+   "description": "承認トークンが固定値で、送金額・宛先・リクエストに紐付けられておらず、使い捨てにもなっていない。一度入手したトークンを任意の高額送金に何度でも再利用できる。",
+   "end_line": 23
+  }
+ ]
+}

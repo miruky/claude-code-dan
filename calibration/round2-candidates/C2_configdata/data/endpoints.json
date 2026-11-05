@@ -1,0 +1,7 @@
+{
+  "GET  /members":            "members.read",
+  "POST /members/<id>/note":  "members.note.write",
+  "POST /members/<id>/role":  "members.role.write",
+  "POST /members/invite":     "members.invite",
+  "GET  /billing":            "billing.read"
+}

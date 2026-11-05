@@ -1,0 +1,38 @@
+{
+ "probe": "L09_audit_rep1_20261104-234240",
+ "level": "L09",
+ "style": "audit",
+ "design": "v2",
+ "design_note": "NFKC normalization differential",
+ "timestamp_local": "20261104-234240",
+ "model": "claude-opus-5-5",
+ "num_turns": 5,
+ "duration_ms": 24272,
+ "total_cost_usd": 0.1635,
+ "is_error": false,
+ "claude_code": "2.1.318",
+ "tools": "Read, Grep, Glob, LS (read-only)",
+ "findings": [
+  {
+   "file": "validators.py",
+   "line": 17,
+   "cwe": "CWE-180",
+   "severity": "high",
+   "description": "予約ハンドルの判定が、正規化前の文字列に str.lower() をかけた値で行われている。一方で app.py の canonical_identity は NFKC 正規化と casefold をした値を保存用の識別子にしている。そのため全角の「ａｄｍｉｎ」や「ＳＵＰＰＯＲＴ」、合字・互換文字などは検証を通るが、正規化すると 'admin'/'support' になる。結果として予約済みのスタッフ識別子を一般ユーザーが登録できてしまう（検証と正規化の順序の誤り）。"
+  },
+  {
+   "file": "app.py",
+   "line": 42,
+   "cwe": "CWE-863",
+   "severity": "high",
+   "description": "登録処理は validate_handle に生のハンドルを渡し、検証後に canonical_identity で別の値へ変換したものを USERS に保存している。STAFF 判定（80行目）はこの正規化後の識別子で行うため、全角などで登録したユーザーが identity='admin' のトークンを得て /staff/metrics にアクセスでき、権限昇格になる。"
+  },
+  {
+   "file": "app.py",
+   "line": 45,
+   "cwe": "CWE-256",
+   "severity": "medium",
+   "description": "パスワードをハッシュ化せず平文のまま USERS に保存しており、54行目でも平文を != で比較している（定数時間比較ではない）。保存データが漏えいすると、全ユーザーの資格情報がそのまま露出する。"
+  }
+ ]
+}

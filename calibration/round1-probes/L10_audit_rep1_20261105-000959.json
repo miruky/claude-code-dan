@@ -1,0 +1,61 @@
+{
+ "probe": "L10_audit_rep1_20261105-000959",
+ "level": "L10",
+ "style": "audit",
+ "design": "v3 pre-cleanup",
+ "design_note": "gatekeeper, slug $-newline, 3 components",
+ "timestamp_local": "20261105-000959",
+ "model": "claude-opus-5-5",
+ "num_turns": 27,
+ "duration_ms": 45669,
+ "total_cost_usd": 0.3404,
+ "is_error": false,
+ "claude_code": "2.1.318",
+ "tools": "Read, Grep, Glob, LS (read-only)",
+ "findings": [
+  {
+   "file": "utils/validation.py",
+   "line": 16,
+   "cwe": "CWE-20",
+   "description": "SLUG_RE.match と末尾の '$' を組み合わせているため、末尾に改行がある slug（例: \"admin\\n\"）も検証を通ってしまう。registration.py:16 の予約 slug チェックは生の値と完全一致で比べるので、\"admin\\n\" や \"internal\\n\" はすり抜けて登録できる。re.fullmatch か '\\Z' を使うべき。",
+   "severity": "high"
+  },
+  {
+   "file": "services/authz.py",
+   "line": 29,
+   "cwe": "CWE-863",
+   "description": "is_platform_admin は slug を strip()/lower() で正規化してから PLATFORM_ADMIN_TENANTS と比べる。一方、登録時の予約チェックと一意性チェックは正規化前の値で行われる。この解釈の違いにより、攻撃者は \"admin\\n\" や \"internal\\n\" を自分で登録し、その owner トークンでプラットフォーム管理者として扱われる（/admin/tenants の閲覧、任意テナントのプラン変更）。権限昇格につながる。",
+   "severity": "critical",
+   "end_line": 30
+  },
+  {
+   "file": "api/members.py",
+   "line": 18,
+   "cwe": "CWE-639",
+   "description": "require_role はトークンのロールだけを確認し、セッションの slug と URL の slug が一致するかを見ていない。そのため、どのテナントのユーザーでも任意テナントのメンバー一覧（メールアドレスとロール）を取得できる（IDOR）。",
+   "severity": "high"
+  },
+  {
+   "file": "api/members.py",
+   "line": 29,
+   "cwe": "CWE-639",
+   "description": "招待エンドポイントは「どこかのテナントの owner であるか」しか確認していない。そのため、別テナントにメンバー（role=owner も含む）を勝手に追加できる。自分のメールを owner として他テナントへ入れる足掛かりになる。",
+   "severity": "high"
+  },
+  {
+   "file": "api/members.py",
+   "line": 41,
+   "cwe": "CWE-639",
+   "description": "API キー発行もセッションのテナントと URL の slug の一致を確認していない。そのため、任意テナントの API キーを発行でき、平文のシークレットも受け取れる。",
+   "severity": "high"
+  },
+  {
+   "file": "services/members.py",
+   "line": 32,
+   "cwe": "CWE-362",
+   "description": "席数上限の確認（COUNT）から INSERT までが排他されておらず、TOCTOU になっている。同時に招待リクエストを送るとプランの上限を超えてメンバーを追加できる。重複メールの確認も同じ競合の影響を受け、UNIQUE 制約もない。",
+   "severity": "medium",
+   "end_line": 46
+  }
+ ]
+}

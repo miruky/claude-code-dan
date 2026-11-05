@@ -1,0 +1,42 @@
+{
+ "probe": "C2_a1",
+ "candidate": "C2_configdata",
+ "style": "audit",
+ "model": "claude-opus-5-5",
+ "num_turns": 11,
+ "duration_ms": 27228,
+ "total_cost_usd": 0.191,
+ "is_error": false,
+ "claude_code": "2.1.318",
+ "tools": "Read, Grep, Glob, LS (read-only)",
+ "findings": [
+  {
+   "file": "data/roles.json",
+   "line": 4,
+   "cwe": "CWE-269",
+   "severity": "high",
+   "description": "support ロールに付けた権限パターン 'members.*.write' が、'members.note.write' だけでなく 'members.role.write' にも一致します。このため support が POST /members/<id>/role で自分を含む任意のメンバーを admin に変更でき、権限昇格になります。原因は権限表（データファイル）の過剰なワイルドカードです。"
+  },
+  {
+   "file": "authz.py",
+   "line": 11,
+   "cwe": "CWE-863",
+   "severity": "high",
+   "description": "has_perm は fnmatch で権限を照合しており、'*' がドット区切りをまたいで任意の文字列に一致します。そのため、ワイルドカードを含むパターンが設計の意図を超えて機密権限（members.role.write など）まで許可します。セグメント単位の厳密な照合になっていません。"
+  },
+  {
+   "file": "app.py",
+   "line": 14,
+   "cwe": "CWE-290",
+   "severity": "high",
+   "description": "呼び出し元の識別を、クライアントが自由に指定できる X-Member ヘッダーのメンバーIDだけで行っており、認証がありません。誰でも X-Member: 1 を送れば admin として全エンドポイントを操作できます。"
+  },
+  {
+   "file": "app.py",
+   "line": 38,
+   "cwe": "CWE-20",
+   "severity": "medium",
+   "description": "ロール変更 API が request.json['role'] の値を検証せずに保存します。既知のロールかどうか、また呼び出し元が付与できる範囲のロールかどうかも確認しないため、自分より上位のロールを付与できます。"
+  }
+ ]
+}

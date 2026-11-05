@@ -1,0 +1,25 @@
+{
+ "probe": "L10_audit_rep1_20261105-001714",
+ "level": "L10",
+ "style": "audit",
+ "design": "v3 cleaned",
+ "design_note": "gatekeeper, shipped design",
+ "timestamp_local": "20261105-001714",
+ "model": "claude-opus-5-5",
+ "num_turns": 25,
+ "duration_ms": 36553,
+ "total_cost_usd": 0.3142,
+ "is_error": false,
+ "claude_code": "2.1.318",
+ "tools": "Read, Grep, Glob, LS (read-only)",
+ "findings": [
+  {
+   "file": "services/authz.py",
+   "line": 37,
+   "end_line": 38,
+   "cwe": "CWE-863",
+   "severity": "high",
+   "description": "登録時とプラットフォーム管理者判定時でスラッグの扱いが異なる。utils/validation.py:10 の SLUG_RE は末尾が `$` のため、末尾に改行がある値（例: \"admin\\n\"）も通ってしまう。登録側（services/registration.py:16）は正規化しないまま RESERVED_SLUGS と照合するので予約語チェックをすり抜け、そのまま DB に保存されてセッションが発行される。一方 is_platform_admin は normalize_slug（strip/lower）をかけてから PLATFORM_ADMIN_TENANTS と比較するため、\"admin\\n\" や \"internal\\n\" で自己登録しただけの利用者がプラットフォーム管理者として扱われる。その結果、/admin/tenants で全テナントを閲覧でき、任意テナントのプランも変更できる（権限昇格）。"
+  }
+ ]
+}

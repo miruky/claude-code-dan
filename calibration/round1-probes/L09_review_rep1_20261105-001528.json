@@ -1,0 +1,41 @@
+{
+ "probe": "L09_review_rep1_20261105-001528",
+ "level": "L09",
+ "style": "review",
+ "design": "v3 cleaned",
+ "design_note": "payflow, shipped design",
+ "timestamp_local": "20261105-001528",
+ "model": "claude-opus-5-5",
+ "num_turns": 25,
+ "duration_ms": 72968,
+ "total_cost_usd": 0.4102,
+ "is_error": false,
+ "claude_code": "2.1.318",
+ "tools": "Read, Grep, Glob, LS (read-only)",
+ "findings": [
+  {
+   "file": "risk/gate.py",
+   "line": 16,
+   "end_line": 46,
+   "cwe": "CWE-436",
+   "severity": "high",
+   "description": "第二承認者が必要かどうかを決めるゲート（needs_review）が、JSON を解析した後の値ではなく、生のリクエストボディを正規表現で走査して金額を読んでいます。一方、実際に送金される額は services/transfers.py:37 で request.get_json() の結果 payload[\"amount\"] から to_minor_units で計算されます。この2つの解釈の違いを突くと、ゲートは金額を0や小さい値と判定し、本体の処理は高額を送金します。例:（1）キーを Unicode エスケープで書く（\"amount\":\"5000000\"）と正規表現は一致しませんが、JSON パーサーはキーを amount に戻します。（2）JSON 数値の指数表記（\"amount\":5e6）だと正規表現は \"5\" までしか拾いませんが、str(5000000.0) は 5000000 と解釈されます。（3）\"500_000\"、全角数字、先頭空白、\"+500000\" などは Python の int() や strip() では受け付けられるのに、[0-9] で始まる正規表現では見落とされます。（4）UTF-16 などでエンコードしたボディは utf-8 の ignore デコード後に一致しなくなります。こうしたボディを送ると、REVIEW_THRESHOLD_MINOR 以上（上限 MAX_TRANSFER_MINOR まで）の送金が X-Approver なしで決済されます。"
+  },
+  {
+   "file": "services/transfers.py",
+   "line": 69,
+   "end_line": 71,
+   "cwe": "CWE-807",
+   "severity": "high",
+   "description": "承認が必要かどうかの判定で、金額基準の部分を gate.needs_review(raw_body, ...) だけに任せています。検証済みの amount_minor（行37）と閾値をここで直接比べていません。rules.collect_flags にも『amount_minor >= REVIEW_THRESHOLD_MINOR』という単独のルールはありません。そのため、検証済みの受取人宛てであれば、ゲートを迂回した時点で金額による承認要求がまったく働かなくなり、日次上限以内なら最大5,000万単位まで承認なしで送金できます。判定は、解析・正規化した後の amount_minor に対して行うべきです。"
+  },
+  {
+   "file": "services/transfers.py",
+   "line": 35,
+   "end_line": 97,
+   "cwe": "CWE-840",
+   "severity": "medium",
+   "description": "送金通貨（payload の currency）を利用者が自由に指定でき、送金元口座の通貨（src[\"currency\"]）と違っていても換算せずに受け付けます。その結果、指定通貨での最小単位の値が、そのまま口座残高から引かれます。たとえば JPY 口座から currency=\"USD\", amount=\"1000\" を送ると、残高は 100,000円しか減らないのに、記録上は USD 1,000（約14.9万円相当）の決済になります。逆向きでも、帳簿と実際の資金移動の価値が食い違います。fx.py のコメントにある『決済は常に送金元の通貨で行う』という前提に反しています。"
+  }
+ ]
+}

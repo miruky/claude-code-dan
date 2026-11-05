@@ -1,0 +1,3 @@
+# Levels, PoCs, and harness run on the Python standard library plus Flask.
+# JWT and crypto are hand-rolled on stdlib (hmac/hashlib) on purpose.
+flask>=3.0

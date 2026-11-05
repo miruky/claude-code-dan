@@ -1,0 +1,22 @@
+{
+ "probe": "C3_a1",
+ "candidate": "C3_vendored",
+ "style": "audit",
+ "model": "claude-opus-5-5",
+ "num_turns": 8,
+ "duration_ms": 12459,
+ "total_cost_usd": 0.1614,
+ "is_error": false,
+ "claude_code": "2.1.318",
+ "tools": "Read, Grep, Glob, LS (read-only)",
+ "findings": [
+  {
+   "file": "render.py",
+   "line": 8,
+   "end_line": 8,
+   "cwe": "CWE-79",
+   "severity": "high",
+   "description": "保存型XSS。/profile で保存したユーザー入力の表示名を、vendor の microescape.escape()（& < > のみ置換し、引用符はエスケープしない）で処理してから、単一引用符で囲んだ title 属性に埋め込んでいる。値に ' を含めると属性から抜け出せるため、x' onmouseover='alert(1) のような入力でイベントハンドラを注入でき、/badge を表示した閲覧者のブラウザで任意のスクリプトが実行される。引用符もエスケープする関数（html.escape(quote=True) など）を使う必要がある。"
+  }
+ ]
+}

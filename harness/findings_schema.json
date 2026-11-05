@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file": {"type": "string", "description": "path relative to the audited directory, e.g. app.py"},
+          "line": {"type": "integer", "description": "1-based line number of the vulnerable code"},
+          "end_line": {"type": "integer", "description": "optional end line of the vulnerable range"},
+          "cwe": {"type": "string", "description": "CWE id, e.g. CWE-89"},
+          "severity": {"type": "string"},
+          "description": {"type": "string"}
+        },
+        "required": ["file", "line", "cwe", "description"]
+      }
+    }
+  },
+  "required": ["findings"]
+}

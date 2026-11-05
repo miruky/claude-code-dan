@@ -1,0 +1,63 @@
+{
+ "probe": "L09_audit_rep1_20261105-000754",
+ "level": "L09",
+ "style": "audit",
+ "design": "v3 pre-cleanup",
+ "design_note": "payflow, Arabic-digit vs ASCII gate",
+ "timestamp_local": "20261105-000754",
+ "model": "claude-opus-5-5",
+ "num_turns": 26,
+ "duration_ms": 50751,
+ "total_cost_usd": 0.3782,
+ "is_error": false,
+ "claude_code": "2.1.318",
+ "tools": "Read, Grep, Glob, LS (read-only)",
+ "findings": [
+  {
+   "file": "risk/gate.py",
+   "line": 16,
+   "end_line": 46,
+   "cwe": "CWE-436",
+   "severity": "high",
+   "description": "承認ゲートは生のリクエストボディを独自の正規表現で読み取って金額を判定するが、実際の決済額は request.get_json() で別途パースした値を使う（services/transfers.py:37, 69）。この解釈差によって、承認者トークンなしで閾値を超える送金を確定させられる。たとえば数値の指数表記（\"amount\": 1e6 は正規表現上 1 と読まれる）、キーのUnicodeエスケープ（\"amount\"）、全角数字の文字列（int() は受け付けるが [0-9] には一致しない）などで回避できる。"
+  },
+  {
+   "file": "services/transfers.py",
+   "line": 118,
+   "end_line": 122,
+   "cwe": "CWE-200",
+   "severity": "high",
+   "description": "送金履歴APIが approver 列（第二承認者トークンそのもの）を返し、しかも認証なしで呼び出せる。誰でも有効な承認トークン（appr-xxxx）を取得し、X-Approver ヘッダに入れて高額送金の承認を偽装できる。"
+  },
+  {
+   "file": "services/transfers.py",
+   "line": 51,
+   "end_line": 91,
+   "cwe": "CWE-362",
+   "severity": "medium",
+   "description": "残高チェック（SELECT）と残高減算（UPDATE）、日次利用額の確認が同じトランザクションで排他されていない（TOCTOU）。同時にリクエストを送ると、残高不足や日次上限のチェックをすり抜けて残高がマイナスになるまで二重に引き落とせる。UPDATE に balance_minor >= ? の条件もない。"
+  },
+  {
+   "file": "api/accounts.py",
+   "line": 25,
+   "cwe": "CWE-639",
+   "severity": "medium",
+   "description": "受取人登録APIが、クライアントの送った verified フラグをそのまま保存する。そのため、未検証の受取人への高額送金に付く unverified_large フラグや、リスクスコアの判定を自分で無効化できる。"
+  },
+  {
+   "file": "api/transfers.py",
+   "line": 15,
+   "end_line": 30,
+   "cwe": "CWE-306",
+   "severity": "medium",
+   "description": "送金作成、履歴、残高、受取人登録、明細の各エンドポイントに認証も所有者確認もない。口座番号さえ分かれば、任意の口座から送金したり、他人の情報を閲覧したりできる（ループバック限定であることに依存している）。"
+  },
+  {
+   "file": "config.py",
+   "line": 32,
+   "cwe": "CWE-798",
+   "severity": "low",
+   "description": "第二承認者のトークンがソースコードに固定値で書かれている。コードを読める人なら誰でも承認を偽装できる。"
+  }
+ ]
+}

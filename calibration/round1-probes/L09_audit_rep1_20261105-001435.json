@@ -1,0 +1,40 @@
+{
+ "probe": "L09_audit_rep1_20261105-001435",
+ "level": "L09",
+ "style": "audit",
+ "design": "v3 cleaned",
+ "design_note": "payflow, shipped design",
+ "timestamp_local": "20261105-001435",
+ "model": "claude-opus-5-5",
+ "num_turns": 27,
+ "duration_ms": 51194,
+ "total_cost_usd": 0.3864,
+ "is_error": false,
+ "claude_code": "2.1.318",
+ "tools": "Read, Grep, Glob, LS (read-only)",
+ "findings": [
+  {
+   "file": "risk/gate.py",
+   "line": 15,
+   "end_line": 46,
+   "cwe": "CWE-436",
+   "severity": "high",
+   "description": "二次承認の要否を決めるゲートが、生のリクエストボディを独自の正規表現で読んで金額を判定している。一方、実際に決済される金額は Flask の JSON パーサ（get_json）で得た payload['amount'] から計算される（services/transfers.py:37, 69）。このため両者の解釈がずれる入力でゲートをすり抜けられる。例: キーを \"amount\" とエスケープする、値を \" 500000\" のように先頭空白付きの文字列にする（正規表現は一致せず、to_minor_units 側は strip する）、指数表記の数値 4.99e5 にする（正規表現は 4 しか読まない）。いずれも gate は 0 または小さな値と判断し、needs_review は False になる。二次ルールが承認を求めるのは未検証の受取人で閾値の5倍以上の場合に限られる。したがって閾値以上・5倍未満の高額送金が承認トークン（X-Approver）なしで settled になる。"
+  },
+  {
+   "file": "services/transfers.py",
+   "line": 69,
+   "cwe": "CWE-807",
+   "severity": "high",
+   "description": "承認要否の判定（require_approval）に、正規化済みの amount_minor ではなく生ボディを再スキャンする gate.needs_review(raw_body, ...) の結果を使っている。検証済みの値ではなく、攻撃者が形を自由に操作できる入力に依存してセキュリティ判断をしているため、高額送金の二次承認をバイパスできる。"
+  },
+  {
+   "file": "services/transfers.py",
+   "line": 84,
+   "end_line": 96,
+   "cwe": "CWE-682",
+   "severity": "medium",
+   "description": "送金通貨はリクエストの currency で任意に指定できる。それにもかかわらず、口座通貨（src['currency']）への換算をせず、amount_minor をそのまま口座残高から差し引いている（services/fx.py は「決済は常に元通貨で行う」と前提している）。例えば JPY 口座から currency=EUR, amount=1 を送ると、1 EUR として記録・送金されるのに残高からは 100 円しか引かれない。通貨の取り違えにより、実際より少ない金額の引き落としで送金できる。"
+  }
+ ]
+}

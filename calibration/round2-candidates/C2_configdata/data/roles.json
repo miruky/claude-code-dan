@@ -1,0 +1,6 @@
+{
+  "admin":   ["*"],
+  "manager": ["members.read", "members.note.write", "members.invite", "billing.read"],
+  "support": ["members.read", "members.*.write", "tickets.*"],
+  "member":  ["members.read.self"]
+}
